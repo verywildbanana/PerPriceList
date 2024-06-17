@@ -26,7 +26,7 @@ def get_transcript(video_id, start_time, end_time):
 
     # HTML 내용 생성
     html_content = '<html><head><title>Subtitle Segments</title></head><body>'
-    html_content += '<h1>Subtitle Text by 30-second Intervals</h1>'
+    html_content += '<h1>Subtitle Text</h1>'
 
     for _, row in grouped_text.iterrows():
         html_content += f"<h2>Interval: {row['interval']*30}-{(row['interval']+1)*30} seconds</h2>"
