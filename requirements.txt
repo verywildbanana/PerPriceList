@@ -1,3 +1,5 @@
 Flask
 youtube-transcript-api
 pandas
+selenium
+chromedriver-autoinstaller
