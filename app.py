@@ -38,7 +38,7 @@ def get_transcript(video_id, start_time, end_time):
 
 
 @app.route('/search')
-def home():
+def search():
     html_content = '<html><head><title>Subtitle Search Segments</title></head><body>'
     html_content += '<h1>Subtitle search</h1>'
     html_content += '</body></html>'
