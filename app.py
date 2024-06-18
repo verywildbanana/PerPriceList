@@ -37,5 +37,13 @@ def get_transcript(video_id, start_time, end_time):
     return html_content
 
 
+@app.route('/search')
+def home():
+    html_content = '<html><head><title>Subtitle Search Segments</title></head><body>'
+    html_content += '<h1>Subtitle search</h1>'
+    html_content += '</body></html>'
+    return html_content
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
