@@ -1,6 +1,12 @@
 from flask import Flask, request, render_template_string
 from youtube_transcript_api import YouTubeTranscriptApi
 import pandas as pd
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as ES
+import chromedriver_autoinstaller
 
 app = Flask(__name__)
 
@@ -41,7 +47,34 @@ def get_transcript(video_id, start_time, end_time):
 def search():
     html_content = '<html><head><title>Subtitle Search Segments</title></head><body>'
     html_content += '<h1>Subtitle search</h1>'
+
+    chromedriver_autoinstaller.install()
+    driver = webdriver.Chrome()
+    page_index = 1
+    search_text = "대저토마토"
+    link = f"https://emart.ssg.com/search.ssg?target=all&query={search_text}"
+    driver.get(link)
+    time.sleep(3)
+    driver.execute_script("window.scrollBy(0,10000);")
+    time.sleep(2)
+
+    products = []
+    elements = driver.find_elements(By.CLASS_NAME, "mnemitem_grid_item")
+    for element in elements:
+        product_id = element.get_attribute("id")
+        product_txt = element.find_element(By.CLASS_NAME, "mnemitem_goods_tit").text
+        product_price = element.find_element(By.CLASS_NAME, "new_price").text
+        link = element.find_element(By.CSS_SELECTOR, "a").get_attribute('href')
+        
+        # Add the product details to the html_content
+        html_content += f'<div><p><strong>Product:</strong> {product_txt}</p>'
+        html_content += f'<p><strong>Price:</strong> {product_price}</p>'
+        html_content += f'<p><a href="{link}">Link to Product</a></p></div>'
+
+    driver.quit()
+    
     html_content += '</body></html>'
+    
     return html_content
 
 
