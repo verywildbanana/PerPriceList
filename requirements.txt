@@ -3,3 +3,5 @@ youtube-transcript-api
 pandas
 selenium
 chromedriver-autoinstaller
+Flask-SQLAlchemy
+psycopg2-binary

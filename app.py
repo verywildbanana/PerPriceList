@@ -1,14 +1,12 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
 import pandas as pd
 import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ES
-import chromedriver_autoinstaller
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.vsgfnpxuelgppyjbxpqr:veryWild$521@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres'
+db = SQLAlchemy(app)
 
 @app.route('/get')
 def home():
@@ -43,39 +41,47 @@ def get_transcript(video_id, start_time, end_time):
     return html_content
 
 
-@app.route('/search')
-def search():
-    html_content = '<html><head><title>Subtitle Search Segments</title></head><body>'
-    html_content += '<h1>Subtitle search</h1>'
+class product_list(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    product_id = db.Column(db.String, nullable=True)
+    product_text = db.Column(db.String, nullable=True)
+    product_price = db.Column(db.BigInteger, nullable=True)
+    product_per_price = db.Column(db.Float, nullable=True)
+    link = db.Column(db.String, nullable=True)
+    product_tag = db.Column(db.String, nullable=True)
 
-    chromedriver_autoinstaller.install()
-    driver = webdriver.Chrome()
-    page_index = 1
-    search_text = "대저토마토"
-    link = f"https://emart.ssg.com/search.ssg?target=all&query={search_text}"
-    driver.get(link)
-    time.sleep(3)
-    driver.execute_script("window.scrollBy(0,10000);")
-    time.sleep(2)
+    def __init__(self, created_at, product_id, product_text, product_price, product_per_price, link, product_tag):
+        self.created_at = created_at
+        self.product_id = product_id
+        self.product_text = product_text
+        self.product_price = product_price
+        self.product_per_price = product_per_price
+        self.link = link
+        self.product_tag = product_tag
 
-    products = []
-    elements = driver.find_elements(By.CLASS_NAME, "mnemitem_grid_item")
-    for element in elements:
-        product_id = element.get_attribute("id")
-        product_txt = element.find_element(By.CLASS_NAME, "mnemitem_goods_tit").text
-        product_price = element.find_element(By.CLASS_NAME, "new_price").text
-        link = element.find_element(By.CSS_SELECTOR, "a").get_attribute('href')
-        
-        # Add the product details to the html_content
-        html_content += f'<div><p><strong>Product:</strong> {product_txt}</p>'
-        html_content += f'<p><strong>Price:</strong> {product_price}</p>'
-        html_content += f'<p><a href="{link}">Link to Product</a></p></div>'
 
-    driver.quit()
-    
-    html_content += '</body></html>'
-    
-    return html_content
+@app.route('/products', methods=['GET'])
+def get_products():
+    try:
+        # 모든 데이터 가져오기
+        products = product_list.query.all()
+        result = [
+            {
+                "id": product.id,
+                "created_at": product.created_at,
+                "product_id": product.product_id,
+                "product_text": product.product_text,
+                "product_price": product.product_price,
+                "product_per_price": product.product_per_price,
+                "link": product.link,
+                "product_tag": product.product_tag
+            }
+            for product in products
+        ]
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"message": "Failed to fetch data", "error": str(e)}), 500
 
 
 if __name__ == '__main__':
