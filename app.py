@@ -11,8 +11,6 @@ load_dotenv(find_dotenv())
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
     raise RuntimeError("DATABASE_URL is not set in .env file")
-else:
-    print(f"Database URL: {database_url}")
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
