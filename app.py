@@ -1,11 +1,21 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from youtube_transcript_api import YouTubeTranscriptApi
 import pandas as pd
 import time
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv,find_dotenv
+import os
+
+load_dotenv(find_dotenv())
+
+database_url = os.getenv('DATABASE_URL')
+if not database_url:
+    raise RuntimeError("DATABASE_URL is not set in .env file")
+else:
+    print(f"Database URL: {database_url}")
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.vsgfnpxuelgppyjbxpqr:veryWild$521@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 db = SQLAlchemy(app)
 
 @app.route('/get')
@@ -47,11 +57,12 @@ class product_list(db.Model):
     product_id = db.Column(db.String, nullable=True)
     product_text = db.Column(db.String, nullable=True)
     product_price = db.Column(db.BigInteger, nullable=True)
-    product_per_price = db.Column(db.Float, nullable=True)
+    product_per_price = db.Column(db.BigInteger, nullable=True)
     link = db.Column(db.String, nullable=True)
     product_tag = db.Column(db.String, nullable=True)
+    product_img = db.Column(db.String, nullable=True)
 
-    def __init__(self, created_at, product_id, product_text, product_price, product_per_price, link, product_tag):
+    def __init__(self, created_at, product_id, product_text, product_price, product_per_price, link, product_tag, product_img):
         self.created_at = created_at
         self.product_id = product_id
         self.product_text = product_text
@@ -59,6 +70,7 @@ class product_list(db.Model):
         self.product_per_price = product_per_price
         self.link = link
         self.product_tag = product_tag
+        self.product_img = product_img
 
 
 @app.route('/products', methods=['GET'])
@@ -66,20 +78,21 @@ def get_products():
     try:
         # 모든 데이터 가져오기
         products = product_list.query.all()
-        result = [
-            {
-                "id": product.id,
-                "created_at": product.created_at,
-                "product_id": product.product_id,
-                "product_text": product.product_text,
-                "product_price": product.product_price,
-                "product_per_price": product.product_per_price,
-                "link": product.link,
-                "product_tag": product.product_tag
-            }
-            for product in products
-        ]
-        return jsonify(result), 200
+        # result = [
+        #     {
+        #         "id": product.id,
+        #         "created_at": product.created_at,
+        #         "product_id": product.product_id,
+        #         "product_text": product.product_text,
+        #         "product_price": product.product_price,
+        #         "product_per_price": product.product_per_price,
+        #         "link": product.link,
+        #         "product_tag": product.product_tag
+        #     }
+        #     for product in products
+        # ]
+        # return jsonify(result), 200
+        return render_template('products.html', products=products)
     except Exception as e:
         return jsonify({"message": "Failed to fetch data", "error": str(e)}), 500
 

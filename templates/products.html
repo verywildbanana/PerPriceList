@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .product-img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Product List</h1>
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-4">
+                <div class="card">
+                    <img src="{{ product.product_img }}" class="card-img-top product-img" alt="Product Image">
+                    <div class="card-body">
+                        <h5 class="card-title">Rank #{{ loop.index }}</h5>
+                        <p class="card-text"><strong>ID:</strong> {{ product.id }}</p>
+                        <p class="card-text"><strong>Created At:</strong> {{ product.created_at }}</p>
+                        <p class="card-text"><strong>Product ID:</strong> {{ product.product_id }}</p>
+                        <p class="card-text"><strong>Product Text:</strong> {{ product.product_text }}</p>
+                        <p class="card-text"><strong>Product Price:</strong> {{ "{:,}".format(product.product_price) }}원</p>
+                        <p class="card-text"><strong>Product Per Price:</strong> {{ "{:,}".format(product.product_per_price) }}원 </p>
+                        <p class="card-text"><strong>Product Tag:</strong> {{ product.product_tag }}</p>
+                        <a href="{{ product.link }}" class="btn btn-primary" target="_blank">View Product</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

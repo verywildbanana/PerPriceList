@@ -5,3 +5,4 @@ selenium
 chromedriver-autoinstaller
 Flask-SQLAlchemy
 psycopg2-binary
+python-dotenv
