@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Video Downloader and Player</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      display: none; /* Initially hidden */
+    }
+    .selected {
+      background-color: #4CAF50; /* Green */
+      color: white;
+    }
+    .number-label {
+      display: inline-block;
+      width: 20px;
+      text-align: center;
+    }
+    .radio-button {
+      appearance: none;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 2px solid #4CAF50;
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .radio-button:checked {
+      background-color: #4CAF50;
+      border-color: #4CAF50;
+    }
+
+    .radio-button:checked::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0.75rem;
+      height: 0.75rem;
+      background-color: white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .video-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .download-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      padding: 0.5rem;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .download-button img {
+      width: 24px;
+      height: 24px;
+    }
+
+    .delete-button {
+    position: absolute;
+    top: 10px;
+    right: 50px; /* 다운로드 버튼 왼쪽에 위치 */
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    padding: 0.5rem;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .delete-button svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+  }
+
+  </style>
+  <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <!-- SVG 아이콘 정의 -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="delete-icon" viewBox="0 0 24 24">
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+    </symbol>
+  </svg>
+
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Video Downloader and Player</h1>
+    
+    <div class="mb-6 p-4 bg-white shadow rounded">
+      <h2 class="text-2xl font-semibold mb-4">Download YouTube Video</h2>
+      <form id="download-form" method="post" action="/download" class="flex space-x-4" onsubmit="handleDownloadSubmit(event)">
+        <input type="text" name="url" placeholder="Enter YouTube URL" class="flex-grow p-2 border rounded" required>
+        <button id="download-button" type="submit" class="bg-blue-500 text-white p-2 rounded">Download</button>
+      </form>
+    </div>
+
+    <div class="p-4 bg-white shadow rounded">
+      <h2 class="text-2xl font-semibold mb-4">Uploaded Videos</h2>
+      <ul id="video-list">
+        {% for filename in regular_files %}
+          <li class="mb-6 flex items-start space-x-4">
+            <div class="video-container">
+              <video id="video_{{ loop.index }}" width="500" height="500" controls class="mb-2" onloadedmetadata="checkVideoDuration({{ loop.index }})">
+                <source src="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=filename) }}" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+              <a href="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=filename) }}" download="{{ filename }}" class="download-button">
+                <img src="{{ url_for('static', filename='images/download--v1.png') }}" alt="Download">
+              </a>
+              <button onclick="deleteVideo('{{ filename }}')" class="delete-button">
+                <svg width="24" height="24">
+                  <use href="#delete-icon"></use>
+                </svg>
+              </button>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-center space-x-2">
+                <input type="number" id="start_time_{{ loop.index }}" placeholder="Start time (seconds)" onfocus="setCurrentField(this)" class="p-2 border rounded flex-grow">
+                <button onclick="setStartTime('video_{{ loop.index }}', 'start_time_{{ loop.index }}')" class="bg-yellow-500 text-white p-2 rounded">Get play time</button>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="end_time_{{ loop.index }}" placeholder="End time (seconds)" onfocus="setCurrentField(this)" class="p-2 border rounded flex-grow">
+                <button onclick="setStartTime('video_{{ loop.index }}', 'end_time_{{ loop.index }}')" class="bg-yellow-500 text-white p-2 rounded">Get play time</button>
+              </div>
+              <div class="flex items-center space-x-2">
+                <input type="number" id="repeat_count_{{ loop.index }}" placeholder="Enter repeat count" class="p-2 border rounded flex-grow">
+                <button onclick="createLoopedVideo({{ loop.index }}, '{{ filename }}')" class="bg-blue-500 text-white p-2 rounded">Create video</button>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+        
+        {% for filename in looped_files %}
+        <li class="mb-6 flex items-start space-x-4">
+          <div class="video-container">
+            <video id="video_{{ loop.index }}" width="500" height="500" controls class="mb-2">
+              <source src="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=filename) }}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            <a href="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=filename) }}" download class="download-button">
+              <img src="{{ url_for('static', filename='images/download--v1.png') }}" alt="Download">
+            </a>
+            <button onclick="deleteVideo('{{ filename }}')" class="delete-button">
+              <svg width="24" height="24">
+                <use href="#delete-icon"></use>
+              </svg>
+            </button>
+          </div>
+          <div class="flex items-end space-x-2">
+            <label class="number-label" id="label_{{ loop.index }}"></label>
+            <input type="checkbox" id="checkbox_{{ loop.index }}" class="radio-button" value="{{ filename }}" onclick="toggleSelection({{ loop.index }})">
+          </div>
+        </li>
+        {% endfor %}
+
+      </ul>
+
+      {% if looped_files %}
+      <div id="combine-videos-container" class="flex justify-end mr-12 mb-10">
+        <button id="combine-videos-button" class="bg-blue-500 text-white p-2 rounded mt-6 disabled:opacity-50" onclick="combineVideos()">
+          Combine Selected Videos
+        </button>
+      </div>
+      {% endif %}
+
+      {% if combined_file %}
+      <div class="mb-6 flex items-start space-x-4">
+        <div class="video-container">
+          <video width="500" height="500" controls>
+            <source src="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=combined_file) }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <a href="{{ url_for('uploaded_file', user_id=get_user_identifier(), filename=combined_file) }}" download class="download-button">
+            <img src="{{ url_for('static', filename='images/download--v1.png') }}" alt="Download">
+          </a>
+          <button onclick="deleteVideo('{{ combined_file }}')" class="delete-button">
+            <svg width="24" height="24">
+              <use href="#delete-icon"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+    </div>
+  </div>
+
+  <!-- Fullscreen Loading Spinner Overlay -->
+  <div id="loading-spinner" class="overlay">
+    <div>
+      <svg class="animate-spin h-16 w-16 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <p class="mt-2 text-white text-lg">Processing...</p>
+    </div>
+  </div>
+
+  <script>
+    var currentField = null;
+    var socket = io();
+
+    document.addEventListener("DOMContentLoaded", function() {
+      hideLoadingSpinner(); // Hide spinner on page load
+    });
+
+    function deleteVideo(filename) {
+      if (confirm('Are you sure you want to delete this video?')) {
+        showLoadingSpinner();
+        fetch('/delete_video', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ filename: filename })
+        })
+        .then(response => response.json())
+        .then(data => {
+          hideLoadingSpinner();
+          if (data.success) {
+            alert('Video deleted successfully!');
+            window.location.reload();
+          } else {
+            alert('Error deleting video: ' + data.error);
+          }
+        });
+      }
+    }
+
+    function setCurrentField(field) {
+      currentField = field;
+    }
+
+    function setStartTime(videoId, targetInputId) {
+      var video = document.getElementById(videoId);
+      var currentTime = video.currentTime;
+      var targetInput = document.getElementById(targetInputId);
+      targetInput.value = Math.floor(currentTime);
+    }
+
+    var selectedIndices = [];
+    var nextNumber = 1;
+
+    function toggleSelection(index) {
+      const checkbox = document.getElementById(`checkbox_${index}`);
+      const label = document.getElementById(`label_${index}`);
+
+      if (checkbox.checked) {
+        // 체크박스가 선택되었을 때
+        if (!selectedIndices.includes(index)) {
+          selectedIndices.push(index);
+          label.textContent = nextNumber++;
+        }
+      } else {
+        // 체크박스가 선택 해제되었을 때
+        const removedNumber = label.textContent;
+        selectedIndices = selectedIndices.filter(i => i !== index);
+        label.textContent = '';
+        updateNumbers();
+      }
+      // toggleCombineButton();
+    }
+
+    function updateNumbers() {
+      nextNumber = 1;
+      selectedIndices.sort((a, b) => a - b); // 인덱스 정렬
+
+      selectedIndices.forEach((index, i) => {
+        const label = document.getElementById(`label_${index}`);
+        label.textContent = nextNumber++;
+      });
+      // toggleCombineButton();
+    }
+
+    function toggleCombineButton() {
+      const combineButton = document.getElementById('combine-videos-button');
+      if (selectedIndices.length > 0) {
+        combineButton.disabled = false;
+      } else {
+        combineButton.disabled = true;
+      }
+    }
+
+    function combineVideos() {
+      const selectedFiles = selectedIndices.map(index => document.getElementById(`checkbox_${index}`).value);
+
+      if (selectedFiles.length === 0) {
+        alert('Please select the checkbox above the button in the order you want to create the video.');
+        return;
+      }
+
+      showLoadingSpinner();
+
+      fetch('/create_combined_video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ selected_files: selectedFiles })
+      })
+      .then(response => response.json())
+      .then(data => {
+        hideLoadingSpinner();
+        if (data.success) {
+          alert('Videos combined successfully!');
+          window.location.reload();
+        } else {
+          alert('Error creating combined video: ' + data.error);
+        }
+      });
+    }
+
+    function handleDownloadSubmit(event) {
+      event.preventDefault();
+      document.getElementById('download-button').disabled = true;
+      showLoadingSpinner();
+
+      var form = document.getElementById('download-form');
+      var formData = new FormData(form);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData
+      }).then(response => {
+        if (!response.ok) {
+          return response.json().then(data => { throw new Error(data.error); });
+        }
+        return response.json();
+      }).then(data => {
+        hideLoadingSpinner();
+        document.getElementById('download-button').disabled = false;
+        window.location.reload();
+      }).catch(error => {
+        console.error('Error:', error);
+        alert(error.message);
+        hideLoadingSpinner();
+        document.getElementById('download-button').disabled = false;
+      });
+    }
+
+    function showLoadingSpinner() {
+      document.getElementById('loading-spinner').style.display = 'flex';
+    }
+
+    function hideLoadingSpinner() {
+      document.getElementById('loading-spinner').style.display = 'none';
+    }
+
+    function checkVideoDuration(index) {
+      const video = document.getElementById('video_' + index);
+      video.onloadedmetadata = function() {
+        video.dataset.duration = video.duration;
+      };
+    }
+
+    function createLoopedVideo(index, filename) {
+      const video = document.getElementById('video_' + index);
+      const startTime = parseFloat(document.getElementById('start_time_' + index).value);
+      const endTime = parseFloat(document.getElementById('end_time_' + index).value);
+      const repeatCount = parseInt(document.getElementById('repeat_count_' + index).value);
+
+      if (isNaN(startTime) || isNaN(endTime) || isNaN(repeatCount)) {
+        alert('Please enter valid start time, end time, and repeat count.');
+        return;
+      }
+
+      if (startTime >= endTime) {
+        alert('End time must be greater than start time.');
+        return;
+      }
+
+      if (startTime < 1 || endTime < 1 || repeatCount < 1) {
+        alert('Start time, end time must be greater than 0, and repeat count must be at least 1.');
+        return;
+      }
+
+      const videoDuration = video.dataset.duration;
+      if (startTime > videoDuration || endTime > videoDuration) {
+        alert('Start time or end time exceeds the video duration.');
+        return;
+      }
+
+      // Show loading spinner and proceed with creating looped video
+      showLoadingSpinner();
+      socket.emit('create_looped_video', {
+        filename: filename,
+        start_time: startTime,
+        end_time: endTime,
+        repeat_count: repeatCount
+      });
+    }
+
+    socket.on('progress', function(data) {
+      // Do nothing for now, as we are not using a progress bar
+    });
+
+    socket.on('complete', function(data) {
+      hideLoadingSpinner();
+      alert('Looped video created successfully!');
+      window.location.reload();
+    });
+
+    socket.on('error', function(data) {
+      hideLoadingSpinner();
+      alert('Error creating looped video: ' + data.error);
+    });
+  </script>
+</body>
+</html>

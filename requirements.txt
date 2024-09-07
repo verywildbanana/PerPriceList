@@ -6,3 +6,7 @@ chromedriver-autoinstaller
 Flask-SQLAlchemy
 psycopg2-binary
 python-dotenv
+yt-dlp
+moviepy
+flask-socketio 
+eventlet

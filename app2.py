@@ -53,7 +53,7 @@ def download():
         os.makedirs(user_folder)
     
     # 고정된 파일명 사용
-    video_filename = 'downloaded_video'
+    video_filename = 'downloaded_video.mp4'
     video_filepath = os.path.join(user_folder, video_filename)
 
     # 기존 파일이 있으면 삭제
@@ -62,7 +62,7 @@ def download():
 
     ydl_opts = {
         'outtmpl': video_filepath,
-        'format': 'bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/mp4'
+        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]'
     }
 
     try:
@@ -186,4 +186,4 @@ def cleanup(exception=None):
     print("cleanup")
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5003)
+    socketio.run(app, host='0.0.0.0', port=5000)
